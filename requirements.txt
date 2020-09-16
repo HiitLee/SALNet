@@ -1,0 +1,12 @@
+tensorflow==2.2.0
+tensorboardx
+torch==1.5.0
+gensim
+nltk
+numpy
+pandas
+scikit-learn
+scipy
+sklearn
+tqdm
+fire
