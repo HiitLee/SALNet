@@ -719,11 +719,8 @@ def main(task='mrpc',
 
 
             if(global_step!=ls-1):
-                dataset_temp = TaskDataset(data_dev_file, pipeline)
-                data_iter_temp = DataLoader(dataset_temp, batch_size=cfg.batch_size, shuffle=True)
-                
-                dataset_temp_na = TaskDataset(data_dev_file, pipeline)
-                data_iter_temp_na = DataLoader(dataset_temp_na, batch_size=cfg.batch_size, shuffle=False)
+                data_iter_temp = 1
+                data_iter_temp_na = 1
 
 
 
@@ -742,6 +739,66 @@ def main(task='mrpc',
             logits,attention_score = model2(token1.cuda(),input_ids, segment_ids, input_mask,seq_lengths)
 
             return label_id, logits
+        if(dataName == "IMDB"):
+            labelNum = 2
+            dataName= "IMDB"
+            tdataName = "imdbtrain"
+            testName = "IMDB_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {}
+		    }
+        elif(dataName == "AG"):
+            labelNum = 4
+            dataName = "AGNews"
+            tdataName = "agtrain"
+            testName = "ag_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {},
+		    "2" : {},
+		    "3" : {}
+		    }
+        elif(dataName == "yahoo"):
+            labelNum = 10
+            dataName = "yahoo"
+            tdataName = "yahootrain"
+            testName = "yahoo_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {},
+		    "2" : {},
+		    "3" : {},
+		    "4" : {},
+		    "5" : {},
+		    "6" : {},
+		    "7" : {},
+		    "8" : {},
+		    "9" : {}
+		    }
+        
+        
+        elif(dataName == "dbpedia"):
+            labelNum = 14
+            dataName == "dbpedia"
+            tdataName = "dbtrain"
+            testName = "db_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {},
+		    "2" : {},
+		    "3" : {},
+		    "4" : {},
+		    "5" : {},
+		    "6" : {},
+		    "7" : {},
+		    "8" : {},
+		    "9" : {},
+		    "10" : {},
+		    "11" : {},
+		    "12" : {},
+		    "13" : {}
+		    }
       
         curNum=1
 
@@ -765,106 +822,103 @@ def main(task='mrpc',
                                       TaskDataset.labels, max_len)]
 
 
-            fd = open("./total_data/imdbtrain.tsv", 'r', encoding='utf-8')
-            rdr = csv.reader(fd, delimiter='\t')
 
-            res=[]
-            num_a=0
-            num_b=0
-            for line in rdr:
-                #print(line)
-                num_a+=1
-                res.append([line[0],line[1]])
 
-            print("curNum#:" , curNum)
-            #print(res)
-            fw = open('./data/IMDB_temp_short.tsv', 'w', encoding='utf-8', newline='')
-            wr = csv.writer(fw, delimiter='\t')
+            data_unlabeled_file = "./data/"+dataName + "_unlabeled" + str(kkk+1)+".tsv"
+            data_dev_file = "./data/" + dataName + "_dev" + str(kkk+1)+".tsv"
+            data_labeled_file = "./data/" + dataName + "_labeled" + str(kkk+1)+".tsv"
+            data_total_file = "./total_data/" + tdataName + ".tsv"
+            data_test_file = "./total_data/" + testName + ".tsv"
+            f_total = open(data_total_file, 'r', encoding='utf-8')
+            r_total = csv.reader(f_total, delimiter='\t')
+
+            allD=[]
+            for line in r_total:
+                allD.append([line[0],line[1]])
+            f_total.close()
+
+            for ii in range(0, kkk+1):
+                random.shuffle(allD)
+                
+            num_data = len(allD)
+            num_data_dev_temp = int(int(num_data*0.01)/labelNum)
+            num_data_dev = int(int(num_data_dev_temp*0.15)/labelNum)
+            num_data_labeled = int(int(num_data_dev_temp*0.85)/labelNum)
+            num_data_unlabeled = num_data - int(num_data_dev_temp*labelNum)
+
+
+#            num_data_dev_temp = 20 * labelNum
+#            num_data_dev = 10 * labelNum
+#            num_data_labeled = 10 * labelNum
+#            #num_data_unlabeled = 200000 - num_data_dev_temp
+#            num_data_unlabeled = len(allD) - num_data_dev_temp
             
-            for i in range(0, curNum):
-                random.shuffle(res)
-                #print(res[1][0])
-                print("########")
-            curNum+=3
-            num_data = len(res)
-            num_data_dev_temp = int(num_data*0.01)
-            num_data_dev = int(num_data_dev_temp*0.15)
-            num_data_short = int(num_data_dev_temp*0.85)
-            num_data_train = num_data - num_data_dev_temp
-            fd.close()
+            print("num_data_dev#: ", num_data_dev)
+            print("num_data_labeled#: ",num_data_labeled)
+            print("num_data_unlabeled#: ",num_data_unlabeled)
 
 
-            num=0
-            
-            data_train_file = "./data/IMDB_train" + str(kkk+1)+".tsv"
-            data_dev_file = "./data/IMDB_dev" + str(kkk+1)+".tsv"
-            data_short_file = "./data/IMDB_short" + str(kkk+1)+".tsv"
-            
+            f_temp = open('./data/temp_data.tsv', 'w', encoding='utf-8', newline='')
+            w_temp = csv.writer(f_temp, delimiter='\t')
 
-            print("num_data_dev#:", num_data_dev)
-            print("num_data_short#:",num_data_short)
-            print("num_data_train#:",num_data_train)
-            fw = open('./data/IMDB_temp_short.tsv', 'w', encoding='utf-8', newline='')
-            wr = csv.writer(fw, delimiter='\t')
+            f_unlabeled = open(data_unlabeled_file, 'w', encoding='utf-8', newline='')
+            w_unlabeled = csv.writer(f_unlabeled, delimiter='\t')
+           
+            allD2=[]
+            tempD={}
+            for line in allD:
+                if(line[0] not in tempD):
+                    allD2.append([line[0],line[1]])
+                    tempD[line[0]] = 1
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)):
+                    allD2.append([line[0],line[1]])
+                    tempD[line[0]] += 1
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)+int(num_data_unlabeled/labelNum)):
+                    allD2.append([line[0],line[1]])
+                    tempD[line[0]] += 1
 
-            fe = open(data_train_file, 'w', encoding='utf-8', newline='')
-            we = csv.writer(fe, delimiter='\t')
+            tempD={}
+            for line in allD2:
+                if(line[0] not in tempD):
+                    tempD[line[0]] = 1
+                    w_temp.writerow([line[0],line[1]])
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)):
+                    tempD[line[0]] += 1
+                    w_temp.writerow([line[0],line[1]])
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)+int(num_data_unlabeled/labelNum)):
+                    w_unlabeled.writerow([line[0],line[1]])
+                    tempD[line[0]] += 1
 
-            res2=[]
-            num_pos=0
-            num_neg=0
-            for line in res:
-                #print(line[0])
-                #print(line[1])
-                if(line[0]=='0' and num_pos <=(num_data_dev_temp/2)):
-                    num_pos+=1
-                    wr.writerow(['0',line[1]])
-                elif(line[0]=='1' and num_neg <= (num_data_dev_temp/2)):
-                    num_neg+=1
-                    wr.writerow(['1',line[1]])
+            f_temp.close()
+            f_unlabeled.close()                
+
+
+            f_temp = open('./data/temp_data.tsv', 'r', encoding='utf-8')
+            r_temp = csv.reader(f_temp, delimiter='\t')
+
+            f_dev = open(data_dev_file, 'w', encoding='utf-8', newline='')
+            w_dev = csv.writer(f_dev, delimiter='\t')
+
+            f_labeled = open(data_labeled_file, 'w', encoding='utf-8', newline='')
+            w_labeled = csv.writer(f_labeled, delimiter='\t')
+
+            tempD={}
+            for line in r_temp:
+                if(line[0] not in tempD):
+                    tempD[line[0]] = 1
+                    w_dev.writerow([line[0],line[1]])
+                elif(tempD[line[0]] <= (num_data_dev/labelNum)):
+                    tempD[line[0]] += 1
+                    w_dev.writerow([line[0],line[1]])
                 else:
-                    num+=1
-                    we.writerow([line[0],line[1]])
-
-            fw.close()
-            fe.close()                
-
-            print("num_pos #:" , num_pos," num_neg:", num_neg)
-
-            f = open('./data/IMDB_temp_short.tsv', 'r', encoding='utf-8')
-            rdr = csv.reader(f, delimiter='\t')
-            num_pos=0
-            num_neg=0
-            num=0
-
-            fw = open(data_dev_file, 'w', encoding='utf-8', newline='')
-            wr = csv.writer(fw, delimiter='\t')
-
-
-            fe = open(data_short_file, 'w', encoding='utf-8', newline='')
-            we = csv.writer(fe, delimiter='\t')
-
-
-            for line in rdr:
-                #print(line[0])
-                if(line[0]=='0' and num_pos <=(num_data_dev/2)):
-                    num_pos+=1
-                    wr.writerow(['0',line[1]])
-                elif(line[0]=='1' and num_neg <= (num_data_dev/2)):
-                    num_neg+=1
-                    wr.writerow(['1',line[1]])
-                else:
-                    num+=1
-                    we.writerow([line[0],line[1]])
-
-
-
-            print("num_pos #:" , num_pos," num_neg:", num_neg)
-            f.close()
-            fw.close()
-            fe.close()     
+                    w_labeled.writerow([line[0],line[1]])
+                
+            f_temp.close()
+            f_dev.close()
+            f_labeled.close()
             
-            dataset = TaskDataset(data_train_file, pipeline)
+            
+            dataset = TaskDataset(data_unlabeled_file, pipeline)
             data_iter = DataLoader(dataset, batch_size=cfg.batch_size, shuffle=False)
 
             dataset2 = TaskDataset(data_test_file, pipeline)
@@ -875,7 +929,7 @@ def main(task='mrpc',
             data_iter_dev = DataLoader(dataset_dev, batch_size=cfg.batch_size, shuffle=False)
 
 
-            dataset3 = TaskDataset(data_short_file, pipeline)
+            dataset3 = TaskDataset(data_labeled_file, pipeline)
             data_iter3 = DataLoader(dataset3, batch_size=cfg.batch_size, shuffle=True)
 
             weights = tokenization.embed_lookup2()
@@ -891,8 +945,8 @@ def main(task='mrpc',
             criterion = nn.CrossEntropyLoss()
 
             
-            model1 = Classifier_CNN(2)
-            model2 = Classifier_Attention_LSTM(2)
+            model1 = Classifier_CNN(labelNum)
+            model2 = Classifier_Attention_LSTM(labelNum)
 
             trainer = train.Trainer(cfg,
                                     dataName,
@@ -928,7 +982,7 @@ def main(task='mrpc',
             fw = open('./temp_data/temp_train_IMDB.tsv', 'w', encoding='utf-8', newline='')
             wr = csv.writer(fw, delimiter='\t')
 
-            fr = open(data_short_file, 'r', encoding='utf-8')
+            fr = open(data_labeled_file, 'r', encoding='utf-8')
             rdrr = csv.reader(fr,  delimiter='\t')
             for line in rdrr:
                 wr.writerow([line[0],line[1]])
@@ -941,7 +995,7 @@ def main(task='mrpc',
             temp_check=[]
             temp_label=[]
 
-            with open(data_train_file, "r", encoding='utf-8') as f:
+            with open(data_unlabeled_file, "r", encoding='utf-8') as f:
                 lines = csv.reader(f, delimiter='\t')
 
                 for i in lines:

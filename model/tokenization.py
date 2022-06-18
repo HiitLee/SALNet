@@ -13,8 +13,9 @@ from gensim.test.utils import datapath, get_tmpfile
 from gensim.models import KeyedVectors
 from gensim.scripts.glove2word2vec import glove2word2vec
 
-glove2word2vec('glove.42B.300d.txt', 'word2vec.txt')
-embed_lookup = KeyedVectors.load_word2vec_format("word2vec.txt")
+#glove2word2vec('glove.42B.300d.txt', 'word2vec.txt')
+#embed_lookup = KeyedVectors.load_word2vec_format("word2vec.txt")
+embed_lookup = KeyedVectors.load_word2vec_format("/home/hyeontae/KETI/temp/Sample/word2vec_BERT.txt")
 
 def convert_to_unicode(text):
     """Converts `text` to Unicode (if it's not already), assuming utf-8 input."""

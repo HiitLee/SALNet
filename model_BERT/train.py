@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from sklearn.metrics import precision_score, recall_score,f1_score, accuracy_score
 from random import randint
 from pytorchtools import EarlyStopping
+from transformers import AdamW, get_linear_schedule_with_warmup 
 
 
 class Config(NamedTuple):
@@ -38,6 +39,7 @@ class Trainer(object):
         self.model = model
         self.model2 = model2
         self.data_iter = data_iter # iterator to load data
+        self.save_dir = './model_BERT/' 
         self.data_iter_b = data_iter_b # iterator to load data
         self.data_iter2 = data_iter2
         self.data_iter2_b = data_iter2_b
@@ -64,7 +66,8 @@ class Trainer(object):
         model = self.model.to(self.device)
         model2 = self.model2.to(self.device)
         t =  self.kkk
-        
+       
+        print("self##dataName#####:", self.dataName)
         if(self.dataName == 'IMDB'):
             rnn_save_name = "./IMDB_model_save/checkpoint_RNN"+str(t)+".pt"
             cnn_save_name = "./IMDB_model_save/checkpoint_CNN"+str(t)+".pt"
@@ -75,7 +78,7 @@ class Trainer(object):
             cnn_save_name = "./AGNews_model_save/checkpoint_CNN"+str(t)+".pt"
             result_name = "./result/result_AGNews.txt"
             pseudo_name = "./result/pseudo_train_set_AGNews.txt"
-        elif(self.dataName == "DBpedia"):
+        elif(self.dataName == "dbpedia"):
             rnn_save_name = "./DBpedia_model_save/checkpoint_RNN"+str(t)+".pt"
             cnn_save_name = "./DBpedia_model_save/checkpoint_CNN"+str(t)+".pt"
             result_name = "./result/result_DBpedia.txt"
@@ -87,6 +90,7 @@ class Trainer(object):
             pseudo_name = "./result/pseudo_train_set_yahoo.txt"
 
         
+        print("result########:", result_name)
         
         num_a=0
         global_step = 0 # global iteration steps regardless of epochs
@@ -108,9 +112,9 @@ class Trainer(object):
                 temp=987654321
                 early_stopping = EarlyStopping(patience=10, verbose=True)
                 valid_losses = []
+                self.optimizer = AdamW(model.parameters(), lr=1e-5, correct_bias = True)
                 
                 while(1):
-                    self.optimizer = optim.optim4GPU(self.cfg, model, len(self.data_iter3_b))
                     global_step = 0 # global iteration steps regardless of epochs
                     global_step3 = 0
                     loss_sum = 0. # the sum of iteration losses to get average loss in every epoch
@@ -136,7 +140,6 @@ class Trainer(object):
                     loss_sum = 0.
                     global_step3 = 0
                     iter_bar_dev = tqdm(self.dataset_dev_b, desc='Iter (loss=X.XXX)')
-                    self.optimizer = optim.optim4GPU(self.cfg, model, len(self.dataset_dev_b))
             
                     for i, batch in enumerate(iter_bar_dev):
                         batch = [t.to(self.device) for t in batch]
@@ -163,35 +166,34 @@ class Trainer(object):
                 model.load_state_dict(torch.load("./model_save/checkpoint_BERT_real.pt"))
                 print("Early stopping")
                 model.eval()# evaluation mode
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
                 
-                p=[]
-                l=[]
-                p3=[]
-                p2=[]
-                iter_bar = tqdm(self.data_iter2_b, desc='Iter (f1-score=X.XXX)')
-                for batch in iter_bar:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): # evaluation without gradient calculation
+                global_step = 0
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2_b, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
                         label_id, y_pred1 = evalute_CNN(model, batch) # accuracy to print
-                        softmax = nn.Softmax()
-                        y_pred3 = softmax(y_pred1)
-                        #print("y_pred3#:", y_pred3)
-                        y_pred33, y_pred1 = torch.max(y_pred3, 1)
-                        print(y_pred1)
-                        p2.append(np.ndarray.flatten(y_pred3[:, 1].data.cpu().numpy()))
-                        p.append(np.ndarray.flatten(y_pred1.data.cpu().numpy()))
-                        l.append(np.ndarray.flatten(label_id.data.cpu().numpy()))
-                    result2  = 0
-                    iter_bar.set_description('Iter(roc=%5.3f)'%result2)
-                p2 = [item for sublist in p2 for item in sublist]
-                p = [item for sublist in p for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                F1score = f1_score(l,p,average='micro')
-                accur = accuracy_score(l,p)
+                        loss = get_loss_CNN(model, batch,global_step).mean() # mean() for Data Parallelism
+                        targets, outputs = evalute_CNN(model, batch) # accuracy to print
+                        
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                        
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(accur)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
                 
@@ -214,15 +216,6 @@ class Trainer(object):
                         loss_sum += loss.item()
                         iter_bar3.set_description('Iter (loss=%5.3f)'%loss.item())
 
-                        if global_step3 % self.cfg.save_steps == 0: # save
-                            self.save(global_step3)
-
-                        if self.cfg.total_steps and self.cfg.total_steps < global_step3:
-                            print('Epoch %d/%d : Average Loss %5.3f'%(e+1, self.cfg.n_epochs, loss_sum/(i+1)))
-                            print('The Total Steps have been reached.')
-                            self.save(global_step3) # save and finish when global_steps reach total_steps
-                            return
-                        
                     print('Epoch %d/%d : Average Loss %5.3f'%(e+1, self.cfg.n_epochs, loss_sum/(i+1)))
                     model2.eval()
                     loss_sum = 0.
@@ -236,15 +229,6 @@ class Trainer(object):
                         loss_sum += loss.item()
                         iter_bar_dev.set_description('Iter (loss=%5.3f)'%loss.item())
 
-                        if global_step3 % self.cfg.save_steps == 0: # save
-                            self.save(global_step3)
-
-                        if self.cfg.total_steps and self.cfg.total_steps < global_step3:
-                            print('Epoch %d/%d : Average Loss %5.3f'%(e+1, self.cfg.n_epochs, loss_sum/(i+1)))
-                            print('The Total Steps have been reached.')
-                            self.save(global_step3) # save and finish when global_steps reach total_steps
-                            return
-
                     print('Epoch %d/%d : Average Loss %5.3f'%(e+1, self.cfg.n_epochs, loss_sum/(i+1)))
                     valid_loss = np.average(valid_losses)
                     loss_min=early_stopping(valid_loss, model2,"./model_save/checkpoint_LSTM_real.pt")
@@ -255,36 +239,34 @@ class Trainer(object):
 
                 
                 model2.eval()
-                p=[]
-                l=[]
-                p3=[]
-                iter_bar4 = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
-                global_step3=0
-                for batch in iter_bar4:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): # evaluation without gradient calculation
-                        label_id, y_pred1 = evalute_Attn_LSTM(model2, batch, global_step3,len(iter_bar4))# accuracy to print
-                        _, y_pred3 = y_pred1.max(1)
-                        global_step3+=1
-                        p2=[]
-                        l2=[]
-                        for i in range(0,len(y_pred3)):
-                            p3.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                            p2.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l2.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                    p2 = [item for sublist in p2 for item in sublist]
-                    l2 = [item for sublist in l2 for item in sublist]
-                    result2  = f1_score(l2, p2,average='micro')
-                    iter_bar4.set_description('Iter(roc=%5.3f)'%result2)
-                p3 = [item for sublist in p3 for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                results2  = accuracy_score(l, p3)
-                F1score = f1_score(l,p3,average='micro')
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
+                
+                global_step = 0
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
+                    
+                    
+                        loss = get_loss_Attn_LSTM(model2, batch, global_step).mean() # mean() for Data Parallelism
+                        targets, outputs = evalute_Attn_LSTM(model2, batch, global_step3,len(iter_bar))# accuracy to print
+                        
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(results2)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
                 
@@ -376,9 +358,9 @@ class Trainer(object):
                 valid_losses = []
                 bb=987654321
                 
+                self.optimizer = AdamW(model.parameters(), lr=1e-5, correct_bias = True)
                 
                 while(1):
-                    self.optimizer = optim.optim4GPU(self.cfg, model, len(self.data_iter_temp_b))
                     iter_bar = tqdm(self.data_iter_temp_b, desc='Iter (loss=X.XXX)')
                     model.train()
                     global_step = 0 
@@ -404,7 +386,6 @@ class Trainer(object):
                     loss_sum = 0.
                     global_step3 = 0
                     iter_bar_dev = tqdm(self.dataset_dev_b, desc='Iter (loss=X.XXX)')
-                    self.optimizer = optim.optim4GPU(self.cfg, model, len(self.dataset_dev_b))
             
                     for i, batch in enumerate(iter_bar_dev):
                         batch = [t.to(self.device) for t in batch]
@@ -425,39 +406,39 @@ class Trainer(object):
                         break
    
                 model.load_state_dict(torch.load(cnn_save_name))
+               
                 model.eval()# evaluation mode
-                self.model.eval()# evaluation mode
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
                 
-                p=[]
-                l=[]
-                p3=[]
-                p2=[]
-                iter_bar = tqdm(self.data_iter2_b, desc='Iter (f1-score=X.XXX)')
-                for batch in iter_bar:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): # evaluation without gradient calculation
+                global_step = 0
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2_b, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
+                    
                         label_id, y_pred1 = evalute_CNN(model, batch) # accuracy to print
-                        softmax = nn.Softmax()
-                        y_pred3 = softmax(y_pred1)
-                        y_pred33, y_pred1 = torch.max(y_pred3, 1)
-                        p2.append(np.ndarray.flatten(y_pred3[:, 1].data.cpu().numpy()))
-                        p.append(np.ndarray.flatten(y_pred1.data.cpu().numpy()))
-                        l.append(np.ndarray.flatten(label_id.data.cpu().numpy()))
-                    result2  = 0
-                    iter_bar.set_description('Iter(roc=%5.3f)'%result2)
-                p2 = [item for sublist in p2 for item in sublist]
-                p = [item for sublist in p for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                F1score = f1_score(l,p,average='micro')
-                accur = accuracy_score(l,p)
-
+                        loss = get_loss_CNN(model, batch,global_step).mean() # mean() for Data Parallelism
+                        targets, outputs = evalute_CNN(model, batch) # accuracy to print
+                        
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                        
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(accur)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
-               
      
                 valid_losses = []            
                 temp = 987654321
@@ -507,40 +488,40 @@ class Trainer(object):
 
                 model2.load_state_dict(torch.load(rnn_save_name))   
                 model2.eval()
-                p=[]
-                l=[]
-                p3=[]
+         
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
                 
-                iter_bar4 = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
-                for batch in iter_bar4:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): 
-                        label_id, y_pred1 = evalute_Attn_LSTM_SSL(model2, batch) 
-                        _, y_pred3 = y_pred1.max(1)
-                        p2=[]
-                        l2=[]
+                global_step = 0
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
+                    
+                    
+                        loss = get_loss_Attn_LSTM(model2, batch, global_step).mean() # mean() for Data Parallelism
+                        targets, outputs = evalute_Attn_LSTM(model2, batch, global_step3,len(iter_bar))# accuracy to print
                         
-                        for i in range(0,len(y_pred3)):
-                            p3.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                            p2.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l2.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                    p2 = [item for sublist in p2 for item in sublist]
-                    l2 = [item for sublist in l2 for item in sublist]
-      
-                    result2  = f1_score(l2, p2,average='micro')
-                    iter_bar4.set_description('Iter(roc=%5.3f)'%result2)
-                p3 = [item for sublist in p3 for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                results2  = accuracy_score(l, p3)
-                F1score = f1_score(l,p3,average='micro')
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                        
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(results2)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
-         
+                if(num_a == 20):
+                    break
 
     def load(self, model_file, pretrain_file):
         """ load saved model or pretrained transformer (a part of model) """

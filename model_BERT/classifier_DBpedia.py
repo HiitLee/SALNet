@@ -22,7 +22,7 @@ from torch.nn import functional
 from torch import LongTensor
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '5'
 class CsvDataset(Dataset):
     """ Dataset Class for CSV file """
     labels = None
@@ -201,10 +201,10 @@ class Classifier_Attention_LSTM(nn.Module):
         packed_output,(final_hidden_state, final_cell_state) = self.rnn(packed_input)
         r_output, input_sizes = pad_packed_sequence(packed_output, batch_first=True)
         output = r_output
-        alpha = F.softmax(torch.matmul(output, self.w)).unsqueeze(-1)  # [64, 32, 1]
+        alpha = F.softmax(torch.matmul(output, self.w)).unsqueeze(-1)  # [48, 32, 1]
 
-        out = r_output * alpha  # [64, 32, 256]
-        out = torch.sum(out, 1)  # [64, 256]
+        out = r_output * alpha  # [48, 32, 256]
+        out = torch.sum(out, 1)  # [48, 256]
         out = F.relu(out)
         out = self.fc1(out)
         return out, alpha.squeeze()
@@ -284,7 +284,7 @@ def main(task='mrpc',
          pretrain_file='./model/uncased_L-12_H-768_A-12/bert_model.ckpt',
          data_parallel=False,
          vocab='./model/uncased_L-12_H-768_A-12/vocab.txt',
-         dataName='DBpedia',
+         dataName='dbpedia',
          stopNum=1000,
          max_len=200,
          mode='train'):
@@ -376,7 +376,7 @@ def main(task='mrpc',
             for i in range(0, len(input_ids)):
                 split_tokens = []
                 att_index=[]
-                for token in tokenizer.tokenize(data0[global_step*64+perm_idx[i]]): 
+                for token in tokenizer.tokenize(data0[global_step*48+perm_idx[i]]): 
                     split_tokens.append(token)
                 
                 if(len(split_tokens) <= attn_s1[i].item()):  
@@ -396,7 +396,7 @@ def main(task='mrpc',
                             continue
                         tok.append(split_tokens[att_index[j]])
                         
-                token_temp = data0[global_step*64+perm_idx[i]].split(' ')
+                token_temp = data0[global_step*48+perm_idx[i]].split(' ')
                 token2 = []
                 for kk in range(0,len(tok)):
                     token_ab = tok[kk]
@@ -861,7 +861,7 @@ def main(task='mrpc',
             label_id2=[]
  
             for i in range(0, len(input_ids)):
-                input_sentence = data0[global_step*64+perm_idx[i]]
+                input_sentence = data0[global_step*48+perm_idx[i]]
                 input_sentence =re.sub("[!@#$%^&*().?\"~/<>:;'{}]","",input_sentence)
                 matching_number=3
                 abusive_word_list_neg0 = list()
@@ -1053,138 +1053,138 @@ def main(task='mrpc',
              
              
                
-                if((a>=1 and gg_a==13 and a == len(abusive_word_list_neg0) and result5[global_step*64+perm_idx[i]][0]==0  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg0) and y_pred2[i].item()==0  and y_pred22[i].item()>=0.9)):
+                if((a>=1 and gg_a==13 and a == len(abusive_word_list_neg0) and result5[global_step*48+perm_idx[i]][0]==0  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg0) and y_pred2[i].item()==0  and y_pred22[i].item()>=0.9)):
                     label_0.append(0)
-                    result4.append([global_step*64+perm_idx[i],0,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg1) and result5[global_step*64+perm_idx[i]][0]==1 and result5[global_step*64+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg1) and y_pred2[i].item()==1  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],0,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg1) and result5[global_step*48+perm_idx[i]][0]==1 and result5[global_step*48+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg1) and y_pred2[i].item()==1  and y_pred22[i].item()>=0.9)):
                     label_1.append(1)
-                    result4.append([global_step*64+perm_idx[i],1,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg2) and result5[global_step*64+perm_idx[i]][0]==2 and result5[global_step*64+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg2) and y_pred2[i].item()==2  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],1,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg2) and result5[global_step*48+perm_idx[i]][0]==2 and result5[global_step*48+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg2) and y_pred2[i].item()==2  and y_pred22[i].item()>=0.9)):
                     label_2.append(2)
-                    result4.append([global_step*64+perm_idx[i],2,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg3) and result5[global_step*64+perm_idx[i]][0]==3 and result5[global_step*64+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg3) and y_pred2[i].item()==3  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],2,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg3) and result5[global_step*48+perm_idx[i]][0]==3 and result5[global_step*48+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg3) and y_pred2[i].item()==3  and y_pred22[i].item()>=0.9)):
                     label_3.append(3)
-                    result4.append([global_step*64+perm_idx[i],3,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                    result4.append([global_step*48+perm_idx[i],3,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
                     
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg4) and result5[global_step*64+perm_idx[i]][0]==4 and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg4) and y_pred2[i].item()==4  and y_pred22[i].item()>=0.9)):
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg4) and result5[global_step*48+perm_idx[i]][0]==4 and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg4) and y_pred2[i].item()==4  and y_pred22[i].item()>=0.9)):
                     label_4.append(4)
-                    result4.append([global_step*64+perm_idx[i],4,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg5) and result5[global_step*64+perm_idx[i]][0]==5 and result5[global_step*64+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg5) and y_pred2[i].item()==5  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],4,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg5) and result5[global_step*48+perm_idx[i]][0]==5 and result5[global_step*48+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg5) and y_pred2[i].item()==5  and y_pred22[i].item()>=0.9)):
                     label_5.append(5)
-                    result4.append([global_step*64+perm_idx[i],5,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg6) and result5[global_step*64+perm_idx[i]][0]==6  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg6) and y_pred2[i].item()==6  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],5,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg6) and result5[global_step*48+perm_idx[i]][0]==6  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg6) and y_pred2[i].item()==6  and y_pred22[i].item()>=0.9)):
                     label_6.append(6)
-                    result4.append([global_step*64+perm_idx[i],6,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg7) and result5[global_step*64+perm_idx[i]][0]==7  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg7) and y_pred2[i].item()==7 and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],6,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg7) and result5[global_step*48+perm_idx[i]][0]==7  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg7) and y_pred2[i].item()==7 and y_pred22[i].item()>=0.9)):
                     label_7.append(7)
-                    result4.append([global_step*64+perm_idx[i],7,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg8) and result5[global_step*64+perm_idx[i]][0]==8  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg8) and y_pred2[i].item()==8  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],7,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg8) and result5[global_step*48+perm_idx[i]][0]==8  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg8) and y_pred2[i].item()==8  and y_pred22[i].item()>=0.9)):
                     label_8.append(8)
-                    result4.append([global_step*64+perm_idx[i],8,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg9) and result5[global_step*64+perm_idx[i]][0]==9  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg9) and y_pred2[i].item()==9 and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],8,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg9) and result5[global_step*48+perm_idx[i]][0]==9  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg9) and y_pred2[i].item()==9 and y_pred22[i].item()>=0.9)):
                     label_9.append(9)
-                    result4.append([global_step*64+perm_idx[i],9,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg10) and result5[global_step*64+perm_idx[i]][0]==10 and result5[global_step*64+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg10) and y_pred2[i].item()==10 and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],9,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg10) and result5[global_step*48+perm_idx[i]][0]==10 and result5[global_step*48+perm_idx[i]][1]>=0.9 ) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg10) and y_pred2[i].item()==10 and y_pred22[i].item()>=0.9)):
                     label_10.append(9)
-                    result4.append([global_step*64+perm_idx[i],10,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg11) and result5[global_step*64+perm_idx[i]][0]==11  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg11) and y_pred2[i].item()==11 and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],10,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg11) and result5[global_step*48+perm_idx[i]][0]==11  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg11) and y_pred2[i].item()==11 and y_pred22[i].item()>=0.9)):
                     label_11.append(9)
-                    result4.append([global_step*64+perm_idx[i],11,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg12) and result5[global_step*64+perm_idx[i]][0]==12  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg12) and y_pred2[i].item()==12  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],11,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg12) and result5[global_step*48+perm_idx[i]][0]==12  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg12) and y_pred2[i].item()==12  and y_pred22[i].item()>=0.9)):
                     label_12.append(9)
-                    result4.append([global_step*64+perm_idx[i],12,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
-                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg13) and result5[global_step*64+perm_idx[i]][0]==13  and result5[global_step*64+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg13) and y_pred2[i].item()==13  and y_pred22[i].item()>=0.9)):
+                    result4.append([global_step*48+perm_idx[i],12,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                elif((a>=1 and gg_a==13 and a == len(abusive_word_list_neg13) and result5[global_step*48+perm_idx[i]][0]==13  and result5[global_step*48+perm_idx[i]][1]>=0.9) or (a>=1 and gg_a==13 and a == len(abusive_word_list_neg13) and y_pred2[i].item()==13  and y_pred22[i].item()>=0.9)):
                     label_13.append(9)
-                    result4.append([global_step*64+perm_idx[i],13,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()]) 
+                    result4.append([global_step*48+perm_idx[i],13,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()]) 
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg000)):
                     label_0.append(0)
-                    result4.append([global_step*64+perm_idx[i],0,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],0,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg111)):
                     label_1.append(1)
-                    result4.append([global_step*64+perm_idx[i],1,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],1,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg222)):
                     label_2.append(2)
-                    result4.append([global_step*64+perm_idx[i],2,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],2,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg333)):
                     label_3.append(3)
-                    result4.append([global_step*64+perm_idx[i],3,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],3,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg444)):
                     label_4.append(4)
-                    result4.append([global_step*64+perm_idx[i],4,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],4,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg555)):
                     label_5.append(5)
-                    result4.append([global_step*64+perm_idx[i],5,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],5,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg666)):
                     label_6.append(6)
-                    result4.append([global_step*64+perm_idx[i],6,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],6,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg777)):
                     label_7.append(7)
-                    result4.append([global_step*64+perm_idx[i],7,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],7,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg888)):
                     label_8.append(8)
-                    result4.append([global_step*64+perm_idx[i],8,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],8,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg999)):
                     label_9.append(9)
-                    result4.append([global_step*64+perm_idx[i],9,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],9,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg1010)):
                     label_10.append(9)
-                    result4.append([global_step*64+perm_idx[i],10,data0[global_step*644+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],10,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg1111)):
                     label_11.append(9)
-                    result4.append([global_step*64+perm_idx[i],11,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],11,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg1212)):
                     label_12.append(9)
-                    result4.append([global_step*64+perm_idx[i],12,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],12,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                 elif(aa>=1 and gg_a1==13 and aa == len(abusive_word_list_neg1313)):
                     label_13.append(9)
-                    result4.append([global_step*64+perm_idx[i],13,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                elif(result5[global_step*64+perm_idx[i]][1]>=0.9 and y_pred22[i].item()>=0.9 and result5[global_step*64+perm_idx[i]][0]==y_pred2[i].item()):
-                    if(result5[global_step*64+perm_idx[i]][0]==0):
+                    result4.append([global_step*48+perm_idx[i],13,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                elif(result5[global_step*48+perm_idx[i]][1]>=0.9 and y_pred22[i].item()>=0.9 and result5[global_step*48+perm_idx[i]][0]==y_pred2[i].item()):
+                    if(result5[global_step*48+perm_idx[i]][0]==0):
                         label_0.append(0)
-                        result4.append([global_step*64+perm_idx[i],0,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==1):
+                        result4.append([global_step*48+perm_idx[i],0,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==1):
                         label_1.append(1)
-                        result4.append([global_step*64+perm_idx[i],1,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==2):
+                        result4.append([global_step*48+perm_idx[i],1,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==2):
                         label_2.append(2)
-                        result4.append([global_step*64+perm_idx[i],2,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==3):
+                        result4.append([global_step*48+perm_idx[i],2,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==3):
                         label_3.append(3)
-                        result4.append([global_step*64+perm_idx[i],3,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==4):
+                        result4.append([global_step*48+perm_idx[i],3,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==4):
                         label_4.append(4)
-                        result4.append([global_step*64+perm_idx[i],4,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==5):
+                        result4.append([global_step*48+perm_idx[i],4,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==5):
                         label_5.append(5)
-                        result4.append([global_step*64+perm_idx[i],5,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==6):
+                        result4.append([global_step*48+perm_idx[i],5,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==6):
                         label_6.append(6)
-                        result4.append([global_step*64+perm_idx[i],6,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==7):
+                        result4.append([global_step*48+perm_idx[i],6,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==7):
                         label_7.append(7)
-                        result4.append([global_step*64+perm_idx[i],7,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==8):
+                        result4.append([global_step*48+perm_idx[i],7,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==8):
                         label_8.append(8)
-                        result4.append([global_step*64+perm_idx[i],8,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==9):
+                        result4.append([global_step*48+perm_idx[i],8,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==9):
                         label_9.append(9)
-                        result4.append([global_step*64+perm_idx[i],9,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==10):
+                        result4.append([global_step*48+perm_idx[i],9,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==10):
                         label_10.append(9)
-                        result4.append([global_step*64+perm_idx[i],10,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==11):
+                        result4.append([global_step*48+perm_idx[i],10,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==11):
                         label_11.append(9)
-                        result4.append([global_step*64+perm_idx[i],11,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==12):
+                        result4.append([global_step*48+perm_idx[i],11,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==12):
                         label_12.append(9)
-                        result4.append([global_step*64+perm_idx[i],12,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
-                    elif(result5[global_step*64+perm_idx[i]][0]==13):
+                        result4.append([global_step*48+perm_idx[i],12,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    elif(result5[global_step*48+perm_idx[i]][0]==13):
                         label_13.append(9)
-                        result4.append([global_step*64+perm_idx[i],13,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                        result4.append([global_step*48+perm_idx[i],13,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
                     
             
                 else:
-                    result4.append([global_step*64+perm_idx[i],-1,data0[global_step*64+perm_idx[i]], label_id[perm_idx[i]].item()])
+                    result4.append([global_step*48+perm_idx[i],-1,data0[global_step*48+perm_idx[i]], label_id[perm_idx[i]].item()])
 
 
 
@@ -1366,31 +1366,24 @@ def main(task='mrpc',
                 f.close() 
 
                 dataset_temp = TaskDataset('./temp_data/temp_train_DBpedia.tsv', pipeline)
-                data_iter_temp = DataLoader(dataset_temp, batch_size=64, shuffle=True)
+                data_iter_temp = DataLoader(dataset_temp, batch_size=48, shuffle=True)
                 dataset_temp_b = TaskDataset('./temp_data/temp_train_DBpedia.tsv', pipeline1)
-                data_iter_temp_b = DataLoader(dataset_temp_b, batch_size=64, shuffle=True)
+                data_iter_temp_b = DataLoader(dataset_temp_b, batch_size=48, shuffle=True)
                 
                 
                 dataset_temp_na = TaskDataset('./temp_data/temp_train_na_DBpedia.tsv', pipeline)
-                data_iter_temp_na = DataLoader(dataset_temp_na, batch_size=64, shuffle=False)
+                data_iter_temp_na = DataLoader(dataset_temp_na, batch_size=48, shuffle=False)
                 dataset_temp_na_b = TaskDataset('./temp_data/temp_train_na_DBpedia.tsv', pipeline1)
-                data_iter_temp_na_b = DataLoader(dataset_temp_na_b, batch_size=64, shuffle=False)
+                data_iter_temp_na_b = DataLoader(dataset_temp_na_b, batch_size=48, shuffle=False)
                 
 
 
              
             if(global_step!=ls-1):
-                dataset_temp = TaskDataset(data_dev_file, pipeline)
-                data_iter_temp = DataLoader(dataset_temp, batch_size=64, shuffle=True)
-                
-                dataset_temp_b = TaskDataset(data_dev_file, pipeline1)
-                data_iter_temp_b = DataLoader(dataset_temp_b, batch_size=64, shuffle=True)
-                
-                dataset_temp_na = TaskDataset(data_dev_file, pipeline)
-                data_iter_temp_na = DataLoader(dataset_temp_na, batch_size=64, shuffle=False)
-                
-                dataset_temp_na_b = TaskDataset(data_dev_file, pipeline1)
-                data_iter_temp_na_b = DataLoader(dataset_temp_na_b, batch_size=64, shuffle=False)
+                data_iter_temp = 1
+                data_iter_temp_b = 1
+                data_iter_temp_na = 1
+                data_iter_temp_na_b = 1
                 
 
             return label_id, logits2, result_label,result3, data_iter_temp,data_iter_temp_b, data_iter_temp_na,data_iter_temp_na_b
@@ -1407,8 +1400,68 @@ def main(task='mrpc',
             logits,attention_score = model2(token1.cuda(),input_ids, segment_ids, input_mask,seq_lengths)
 
             return label_id, logits
+        if(dataName == "IMDB"):
+            labelNum = 2
+            dataName= "IMDB"
+            tdataName = "imdbtrain"
+            testName = "IMDB_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {}
+		    }
+        elif(dataName == "AG"):
+            labelNum = 4
+            dataName = "AG"
+            tdataName = "agtrain"
+            testName = "ag_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {},
+		    "2" : {},
+		    "3" : {}
+		    }
+        elif(dataName == "yahoo"):
+            labelNum = 10
+            dataName = "yahoo"
+            tdataName = "yahootrain"
+            testName = "yahoo_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {},
+		    "2" : {},
+		    "3" : {},
+		    "4" : {},
+		    "5" : {},
+		    "6" : {},
+		    "7" : {},
+		    "8" : {},
+		    "9" : {}
+		    }
         
-        curNum=1
+        
+        elif(dataName == "dbpedia"):
+            labelNum = 14
+            dataName == "dbpedia"
+            tdataName = "dbtrain"
+            testName = "db_test"
+            Dict2 = {
+		    "0" : {},
+		    "1" : {},
+		    "2" : {},
+		    "3" : {},
+		    "4" : {},
+		    "5" : {},
+		    "6" : {},
+		    "7" : {},
+		    "8" : {},
+		    "9" : {},
+		    "10" : {},
+		    "11" : {},
+		    "12" : {},
+		    "13" : {}
+		    }
+        
+        curNum=0
         cfg = train.Config.from_json(train_cfg)
         model_cfg = models.Config.from_json(model_cfg)
 
@@ -1430,222 +1483,136 @@ def main(task='mrpc',
                                   TaskDataset.labels, max_len)]
 
 
+            data_unlabeled_file = "./data/"+dataName + "_unlabeled" + str(kkk+1)+".tsv"
+            data_dev_file = "./data/" + dataName + "_dev" + str(kkk+1)+".tsv"
+            data_labeled_file = "./data/" + dataName + "_labeled" + str(kkk+1)+".tsv"
+            data_total_file = "./total_data/" + tdataName + ".tsv"
+            data_test_file = "./total_data/" + testName + ".tsv"
+            f_total = open(data_total_file, 'r', encoding='utf-8')
+            r_total = csv.reader(f_total, delimiter='\t')
+
+            allD=[]
+            for line in r_total:
+                allD.append([line[0],line[1]])
+            f_total.close()
+
+            for ii in range(0, kkk+1):
+                random.shuffle(allD)
             
-            fd = open("./total_data/dbtrain.tsv", 'r', encoding='utf-8')
-            rdr = csv.reader(fd, delimiter='\t')
-
-            res=[]
-            num_a=0
-            num_b=0
-            for line in rdr:
-                #print(line)
-                num_a+=1
-                res.append([line[0],line[1]])
-
-            for i in range(0, curNum):
-                random.shuffle(res)
-            curNum = curNum*100
-            num_data = len(res)
-            num_data_dev_temp = int(num_data*0.01)
-            num_data_dev = int(num_data_dev_temp*0.15)
-            num_data_short = int(num_data_dev_temp*0.85)
-            num_data_train = num_data - num_data_dev_temp
-
-
-            num=0
-            data_train_file = "./data/db_train" + str(kkk+1)+".tsv"
-            data_dev_file = "./data/db_dev" + str(kkk+1)+".tsv"
-            data_short_file = "./data/db_short" + str(kkk+1)+".tsv"
+#            num_data = 7010* labelNum
+#            num_data_dev_temp = 2010 * labelNum
+#            num_data_dev = 2000 * labelNum
+#            num_data_labeled = 10 * labelNum
+            #num_data_unlabeled = 200000 - num_data_dev_temp
+#            num_data_unlabeled = num_data - num_data_dev_temp
+#            
+##            #num_data = 5010* labelNum
+#            num_data_dev_temp = 20 * labelNum
+#            num_data_dev = 10 * labelNum
+#            num_data_labeled = 10 * labelNum
+#            #num_data_unlabeled = 200000 - num_data_dev_temp
+#            num_data_unlabeled = len(allD) - num_data_dev_temp
+	    num_data = len(allD)
+            num_data_dev_temp = int(int(num_data*0.01)/labelNum)
+            num_data_dev = int(int(num_data_dev_temp*0.15)/labelNum)
+            num_data_labeled = int(int(num_data_dev_temp*0.85)/labelNum)
+            num_data_unlabeled = num_data - int(num_data_dev_temp*labelNum)
             
+            print("num_data_dev#: ", num_data_dev)
+            print("num_data_labeled#: ",num_data_labeled)
+            print("num_data_unlabeled#: ",num_data_unlabeled)
 
-            print("num_data_dev#:", num_data_dev)
-            print("num_data_short#:",num_data_short)
-            print("num_data_train#:",num_data_train)
-            fw = open('./data/db_temp_short.tsv', 'w', encoding='utf-8', newline='')
-            wr = csv.writer(fw, delimiter='\t')
 
-            fe = open(data_train_file, 'w', encoding='utf-8', newline='')
-            we = csv.writer(fe, delimiter='\t')
+            f_temp = open('./data/temp_data.tsv', 'w', encoding='utf-8', newline='')
+            w_temp = csv.writer(f_temp, delimiter='\t')
 
-            res2=[]
-            num_0=0
-            num_1=0
-            num_2=0
-            num_3=0
-            num_4=0
-            num_5=0
-            num_6=0
-            num_7=0
-            num_8=0
-            num_9=0
-            num_10=0
-            num_11=0
-            num_12=0
-            num_13=0
-            for line in res:
-                #print(line[0])
-                #print(line[1])
-                if(line[0]=='0' and num_0 <=(num_data_dev_temp/14)):
-                    num_0+=1
-                    wr.writerow(['0',line[1]])
-                elif(line[0]=='1' and num_1 <= (num_data_dev_temp/14)):
-                    num_1+=1
-                    wr.writerow(['1',line[1]])
-                elif(line[0]=='2' and num_2 <= (num_data_dev_temp/14)):
-                    num_2+=1
-                    wr.writerow(['2',line[1]])
-                elif(line[0]=='3' and num_3 <= (num_data_dev_temp/14)):
-                    num_3+=1
-                    wr.writerow(['3',line[1]])
-                elif(line[0]=='4' and num_4 <= (num_data_dev_temp/14)):
-                    num_4+=1
-                    wr.writerow(['4',line[1]])
-                elif(line[0]=='5' and num_5 <= (num_data_dev_temp/14)):
-                    num_5+=1
-                    wr.writerow(['5',line[1]])
-                elif(line[0]=='6' and num_6 <= (num_data_dev_temp/14)):
-                    num_6+=1
-                    wr.writerow(['6',line[1]])
-                elif(line[0]=='7' and num_7 <= (num_data_dev_temp/14)):
-                    num_7+=1
-                    wr.writerow(['7',line[1]])
-                elif(line[0]=='8' and num_8 <= (num_data_dev_temp/14)):
-                    num_8+=1
-                    wr.writerow(['8',line[1]])
-                elif(line[0]=='9' and num_9 <= (num_data_dev_temp/14)):
-                    num_9+=1
-                    wr.writerow(['9',line[1]])
-                elif(line[0]=='10' and num_10 <= (num_data_dev_temp/14)):
-                    num_10+=1
-                    wr.writerow(['10',line[1]])
-                elif(line[0]=='11' and num_11 <= (num_data_dev_temp/14)):
-                    num_11+=1
-                    wr.writerow(['11',line[1]])
-                elif(line[0]=='12' and num_12 <= (num_data_dev_temp/14)):
-                    num_12+=1
-                    wr.writerow(['12',line[1]])
-                elif(line[0]=='13' and num_13 <= (num_data_dev_temp/14)):
-                    num_13+=1
-                    wr.writerow(['13',line[1]])
+            f_unlabeled = open(data_unlabeled_file, 'w', encoding='utf-8', newline='')
+            w_unlabeled = csv.writer(f_unlabeled, delimiter='\t')
+           
+            allD2=[]
+            tempD={}
+            for line in allD:
+                if(line[0] not in tempD):
+                    allD2.append([line[0],line[1]])
+                    tempD[line[0]] = 1
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)):
+                    allD2.append([line[0],line[1]])
+                    tempD[line[0]] += 1
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)+int(num_data_unlabeled/labelNum)):
+                    allD2.append([line[0],line[1]])
+                    tempD[line[0]] += 1
+
+            tempD={}
+            for line in allD2:
+                if(line[0] not in tempD):
+                    tempD[line[0]] = 1
+                    w_temp.writerow([line[0],line[1]])
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)):
+                    tempD[line[0]] += 1
+                    w_temp.writerow([line[0],line[1]])
+                elif(tempD[line[0]] <= int(num_data_dev_temp/labelNum)+int(num_data_unlabeled/labelNum)):
+                    w_unlabeled.writerow([line[0],line[1]])
+                    tempD[line[0]] += 1
+
+            f_temp.close()
+            f_unlabeled.close()                
+
+
+            f_temp = open('./data/temp_data.tsv', 'r', encoding='utf-8')
+            r_temp = csv.reader(f_temp, delimiter='\t')
+
+            f_dev = open(data_dev_file, 'w', encoding='utf-8', newline='')
+            w_dev = csv.writer(f_dev, delimiter='\t')
+
+            f_labeled = open(data_labeled_file, 'w', encoding='utf-8', newline='')
+            w_labeled = csv.writer(f_labeled, delimiter='\t')
+
+            tempD={}
+            for line in r_temp:
+                if(line[0] not in tempD):
+                    tempD[line[0]] = 1
+                    w_dev.writerow([line[0],line[1]])
+                elif(tempD[line[0]] <= (num_data_dev/labelNum)):
+                    tempD[line[0]] += 1
+                    w_dev.writerow([line[0],line[1]])
                 else:
-                    num+=1
-                    we.writerow([line[0],line[1]])
-            fd.close()
-            fw.close()
-            fe.close()                
-
-            print("num_0 #:" , num_0,"num_1 #:" , num_1," num_2:", num_2," num_3:", num_3," num_4:", num_4,"num_5 #:" , num_5,"num_6 #:" , num_6,"num_7 #:" , num_7,"num_8 #:" , num_8,"num_9 #:" , num_9,"num_10 #:" , num_10,"num_11 #:" , num_11,"num_12 #:" , num_12,"num_13 #:" , num_13)
-
-            fd = open("./data/db_temp_short.tsv", 'r', encoding='utf-8')
-            rdr = csv.reader(fd, delimiter='\t')
-            num_0=0
-            num_1=0
-            num_2=0
-            num_3=0
-            num_4=0
-            num_5=0
-            num_6=0
-            num_7=0
-            num_8=0
-            num_9=0
-            num_10=0
-            num_11=0
-            num_12=0
-            num_13=0
-            num=0
-
-            fw = open(data_dev_file, 'w', encoding='utf-8', newline='')
-            wr = csv.writer(fw, delimiter='\t')
-
-
-            fe = open(data_short_file, 'w', encoding='utf-8', newline='')
-            we = csv.writer(fe, delimiter='\t')
-
-
-            for line in rdr:
-                if(line[0]=='0' and num_0 <=(num_data_dev/14)):
-                    num_0+=1
-                    wr.writerow(['0',line[1]])
-                elif(line[0]=='1' and num_1 <= (num_data_dev/14)):
-                    num_1+=1
-                    wr.writerow(['1',line[1]])
-                elif(line[0]=='2' and num_2 <= (num_data_dev/14)):
-                    num_2+=1
-                    wr.writerow(['2',line[1]])
-                elif(line[0]=='3' and num_3 <= (num_data_dev/14)):
-                    num_3+=1
-                    wr.writerow(['3',line[1]])
-                elif(line[0]=='4' and num_4 <= (num_data_dev/14)):
-                    num_4+=1
-                    wr.writerow(['4',line[1]])
-                elif(line[0]=='5' and num_5 <= (num_data_dev/14)):
-                    num_5+=1
-                    wr.writerow(['5',line[1]])
-                elif(line[0]=='6' and num_6 <= (num_data_dev/14)):
-                    num_6+=1
-                    wr.writerow(['6',line[1]])
-                elif(line[0]=='7' and num_7 <= (num_data_dev/14)):
-                    num_7+=1
-                    wr.writerow(['7',line[1]])
-                elif(line[0]=='8' and num_8 <= (num_data_dev/14)):
-                    num_8+=1
-                    wr.writerow(['8',line[1]])
-                elif(line[0]=='9' and num_9 <= (num_data_dev/14)):
-                    num_9+=1
-                    wr.writerow(['9',line[1]])
-                elif(line[0]=='10' and num_10 <= (num_data_dev/14)):
-                    num_10+=1
-                    wr.writerow(['10',line[1]])
-                elif(line[0]=='11' and num_11 <= (num_data_dev/14)):
-                    num_11+=1
-                    wr.writerow(['11',line[1]])
-                elif(line[0]=='12' and num_12 <= (num_data_dev/14)):
-                    num_12+=1
-                    wr.writerow(['12',line[1]])
-                elif(line[0]=='13' and num_13 <= (num_data_dev/14)):
-                    num_13+=1
-                    wr.writerow(['13',line[1]])
-                else:
-                    num+=1
-                    we.writerow([line[0],line[1]])
-
-
-
-            print("num_0 #:" , num_0,"num_1 #:" , num_1," num_2:", num_2," num_3:", num_3," num_4:", num_4,"num_5 #:" , num_5,"num_6 #:" , num_6,"num_7 #:" , num_7,"num_8 #:" , num_8,"num_9 #:" , num_9,"num_10 #:" , num_10,"num_11 #:" , num_11,"num_12 #:" , num_12,"num_13 #:" , num_13)
-            fd.close()
-            fw.close()
-            fe.close()
+                    w_labeled.writerow([line[0],line[1]])
+                
+            f_temp.close()
+            f_dev.close()
+            f_labeled.close()
+            
             
 
             
 
-            dataset = TaskDataset(data_train_file, pipeline)
-            data_iter = DataLoader(dataset, batch_size=64, shuffle=False)
+            dataset = TaskDataset(data_unlabeled_file, pipeline)
+            data_iter = DataLoader(dataset, batch_size=48, shuffle=False)
             
-            dataset_b = TaskDataset(data_train_file, pipeline1)
-            data_iter_b = DataLoader(dataset_b, batch_size=64, shuffle=False)
+            dataset_b = TaskDataset(data_unlabeled_file, pipeline1)
+            data_iter_b = DataLoader(dataset_b, batch_size=48, shuffle=False)
             
 
             dataset2 = TaskDataset(data_test_file, pipeline)
-            data_iter2 = DataLoader(dataset2, batch_size=64, shuffle=False)
+            data_iter2 = DataLoader(dataset2, batch_size=48, shuffle=False)
             
             dataset2_b = TaskDataset(data_test_file, pipeline1)
-            data_iter2_b = DataLoader(dataset2_b, batch_size=64, shuffle=False)
+            data_iter2_b = DataLoader(dataset2_b, batch_size=48, shuffle=False)
             
 
 
             dataset_dev = TaskDataset(data_dev_file, pipeline)
-            data_iter_dev = DataLoader(dataset_dev, batch_size=64, shuffle=False)
+            data_iter_dev = DataLoader(dataset_dev, batch_size=48, shuffle=False)
             
             dataset_dev_b = TaskDataset(data_dev_file, pipeline1)
-            data_iter_dev_b = DataLoader(dataset_dev_b, batch_size=64, shuffle=False)
+            data_iter_dev_b = DataLoader(dataset_dev_b, batch_size=48, shuffle=False)
 
 
-            dataset3 = TaskDataset(data_short_file, pipeline)
-            data_iter3 = DataLoader(dataset3, batch_size=64, shuffle=True)
+            dataset3 = TaskDataset(data_labeled_file, pipeline)
+            data_iter3 = DataLoader(dataset3, batch_size=48, shuffle=True)
             
-            dataset3_b = TaskDataset(data_short_file, pipeline1)
-            data_iter3_b = DataLoader(dataset3_b, batch_size=64, shuffle=True)
+            dataset3_b = TaskDataset(data_labeled_file, pipeline1)
+            data_iter3_b = DataLoader(dataset3_b, batch_size=48, shuffle=True)
 
 
             weights = tokenization.embed_lookup2()
@@ -1662,8 +1629,8 @@ def main(task='mrpc',
             curNum+=1
 
 
-            model = Classifier(model_cfg, 14)
-            model2 = Classifier_Attention_LSTM(14)
+            model = Classifier(model_cfg, labelNum)
+            model2 = Classifier_Attention_LSTM(labelNum)
 
             trainer = train.Trainer(cfg,
                                     dataName,
@@ -1756,7 +1723,7 @@ def main(task='mrpc',
             fw = open('./temp_data/temp_train_DBpedia.tsv', 'w', encoding='utf-8', newline='')
             wr = csv.writer(fw, delimiter='\t')
 
-            fr = open(data_short_file, 'r', encoding='utf-8')
+            fr = open(data_labeled_file, 'r', encoding='utf-8')
             rdrr = csv.reader(fr,  delimiter='\t')
             for line in rdrr:
                 wr.writerow([line[0],line[1]])
@@ -1767,7 +1734,7 @@ def main(task='mrpc',
             data0=[]
             temp_check=[]
             temp_label=[]
-            with open(data_train_file, "r", encoding='utf-8') as f:
+            with open(data_unlabeled_file, "r", encoding='utf-8') as f:
                 lines = csv.reader(f, delimiter='\t')
                 for i in lines:
                     a=''

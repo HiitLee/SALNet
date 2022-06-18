@@ -69,7 +69,7 @@ class Trainer(object):
             cnn_save_name = "./AGNews_model_save/checkpoint_CNN"+str(t)+".pt"
             result_name = "./result/result_AGNews.txt"
             pseudo_name = "./result/pseudo_train_set_AGNews.txt"
-        elif(self.dataName == "DBpedia"):
+        elif(self.dataName == "dbpedia"):
             rnn_save_name = "./DBpedia_model_save/checkpoint_RNN"+str(t)+".pt"
             cnn_save_name = "./DBpedia_model_save/checkpoint_CNN"+str(t)+".pt"
             result_name = "./result/result_DBpedia.txt"
@@ -159,46 +159,40 @@ class Trainer(object):
                         break
 
  
-                        
-                
-                p=[]
-                l=[]
-                p3=[]
                 model.load_state_dict(torch.load("./model_save/checkpoint_CNN_real.pt"))
+                print("Early stopping")
                 model.eval()# evaluation mode
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
                 global_step3=0
-                iter_bar4 = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
-                for batch in iter_bar4:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): # evaluation without gradient calculation
-                        label_id, y_pred1 =  evalute_CNN(model, batch,global_step3,len(iter_bar4)) # accuracy to print
-                        _, y_pred3 = y_pred1.max(1)
-                        global_step3+=1
-                        p2=[]
-                        l2=[]
-                        for i in range(0,len(y_pred3)):
-                            p3.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                            p2.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l2.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                    p2 = [item for sublist in p2 for item in sublist]
-                    l2 = [item for sublist in l2 for item in sublist]
-                    result2  = f1_score(l2, p2,average='micro')
-                    iter_bar4.set_description('Iter(roc=%5.3f)'%result2)
-                p3 = [item for sublist in p3 for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                results2  = accuracy_score(l, p3)
-                F1score = f1_score(l,p3,average='micro')
+                
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
+                        targets, outputs =  evalute_CNN(model, batch,global_step3,len(iter_bar)) # accuracy to print
+                        loss = get_loss_CNN(model, batch, global_step3).mean() # mean() for Data Parallelism
+                        
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                        
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(results2)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
+                        
                 
-                
-                
- 
                     
                 temp=987654321
                 early_stopping = EarlyStopping(patience=30, verbose=True)
@@ -258,43 +252,37 @@ class Trainer(object):
                         break
 
                     
-                #model2.load_state_dict(torch.load("./model_save/checkpoint_LSTM_real.pt"))
-                
-                model2.eval()
-                p=[]
-                l=[]
-                p3=[]
-                iter_bar4 = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
+                model2.eval()# evaluation mode
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
                 global_step3=0
-                for batch in iter_bar4:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): # evaluation without gradient calculation
-                        label_id, y_pred1 = evalute_Attn_LSTM(model2, batch, global_step3,len(iter_bar4))# accuracy to print
-                        _, y_pred3 = y_pred1.max(1)
-                        global_step3+=1
-                        p2=[]
-                        l2=[]
-                        for i in range(0,len(y_pred3)):
-                            p3.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                            p2.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l2.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                    p2 = [item for sublist in p2 for item in sublist]
-                    l2 = [item for sublist in l2 for item in sublist]
-                    result2  = f1_score(l2, p2,average='micro')
-                    iter_bar4.set_description('Iter(roc=%5.3f)'%result2)
-                p3 = [item for sublist in p3 for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                results2  = accuracy_score(l, p3)
-                F1score = f1_score(l,p3,average='micro')
+                
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
+                        targets, outputs = evalute_Attn_LSTM(model2, batch, global_step3,len(iter_bar))# accuracy to print
+                        loss = get_loss_Attn_LSTM(model2, batch, global_step3).mean() # mean() for Data Parallelism
+                        
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                print('total#####:', total_sample)
+                print("correct#:#", correct)
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(results2)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
-                
-
                 
             elif(e%2==1):
                 global_step1 = 0
@@ -396,47 +384,39 @@ class Trainer(object):
                     if early_stopping.early_stop:
                         print("Early stopping")
                         break
-                            
-                 
                 model.load_state_dict(torch.load(cnn_save_name))
                 model.eval()# evaluation mode
-                p=[]
-                l=[]
-                p3=[]
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
+                global_step3=0
                 
-                iter_bar4 = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
-                for batch in iter_bar4:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): # evaluation without gradient calculation
-                        label_id, y_pred1 = evalute_CNN_SSL(model, batch) # accuracy to print
-                        _, y_pred3 = y_pred1.max(1)
-
-                        p2=[]
-                        l2=[]
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
+                        targets, outputs =  evalute_CNN(model, batch,global_step3,len(iter_bar)) # accuracy to print
+                        loss = get_loss_CNN(model, batch, global_step3).mean() # mean() for Data Parallelism
                         
-                        for i in range(0,len(y_pred3)):
-                            p3.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                            p2.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l2.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                    p2 = [item for sublist in p2 for item in sublist]
-                    l2 = [item for sublist in l2 for item in sublist]
-      
-                    result2  = f1_score(l2, p2,average='micro')
-                    iter_bar4.set_description('Iter(roc=%5.3f)'%result2)
-                p3 = [item for sublist in p3 for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                results2  = accuracy_score(l, p3)
-                F1score = f1_score(l,p3,average='micro')
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                        
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(results2)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
-
-                
-
+                            
+                 
                 valid_losses = []            
                 temp = 987654321
                 early_stopping = EarlyStopping(patience=10, verbose=True)
@@ -482,42 +462,38 @@ class Trainer(object):
                     if early_stopping.early_stop:
                         print("Early stopping")
                         break
-
                 model2.load_state_dict(torch.load(rnn_save_name))   
-                model2.eval()
-                p=[]
-                l=[]
-                p3=[]
+                model2.eval()# evaluation mode
+                loss_total = 0
+                total_sample = 0
+                acc_total = 0
+                correct = 0
+                global_step3=0
                 
-                iter_bar4 = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
-                for batch in iter_bar4:
-                    batch = [t.to(self.device) for t in batch]
-                    with torch.no_grad(): 
-                        label_id, y_pred1 = evalute_Attn_LSTM_SSL(model2, batch) 
-                        _, y_pred3 = y_pred1.max(1)
-                        p2=[]
-                        l2=[]
+                with torch.no_grad():
+                    iter_bar = tqdm(self.data_iter2, desc='Iter (f1-score=X.XXX)')
+                    for batch in iter_bar:
+                        batch = [t.to(self.device) for t in batch]
+                        input_ids, segment_ids, input_mask, label_id,seq_lengths = batch
+                        targets, outputs = evalute_Attn_LSTM(model2, batch, global_step3,len(iter_bar))# accuracy to print
+                        loss = get_loss_Attn_LSTM(model2, batch, global_step3).mean() # mean() for Data Parallelism
                         
-                        for i in range(0,len(y_pred3)):
-                            p3.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                            p2.append(np.ndarray.flatten(y_pred3[i].data.cpu().numpy()))
-                            l2.append(np.ndarray.flatten(label_id[i].data.cpu().numpy()))
-                    p2 = [item for sublist in p2 for item in sublist]
-                    l2 = [item for sublist in l2 for item in sublist]
-      
-                    result2  = f1_score(l2, p2,average='micro')
-                    iter_bar4.set_description('Iter(roc=%5.3f)'%result2)
-                p3 = [item for sublist in p3 for item in sublist]
-                l = [item for sublist in l for item in sublist]
-                p=np.array(p)
-                l=np.array(l)
-                results2  = accuracy_score(l, p3)
-                F1score = f1_score(l,p3,average='micro')
+                        _, predicted = torch.max(outputs.data, 1)
+                        
+                        correct += (np.array(predicted.cpu()) ==
+                                    np.array(targets.cpu())).sum()
+                        loss_total += loss.item() * input_ids.shape[0]
+                        total_sample += input_ids.shape[0]
+                        iter_bar.set_description('Iter (loss=%5.3f)'%loss.item())
+                        
+                        
+                acc_total = correct/total_sample
+                loss_total = loss_total/total_sample
                 ddf = open(result_name,'a', encoding='UTF8')
-                ddf.write(str(t)+": "+str(num_a)+"aucr: "+str(results2)+"f1-score: "+str(F1score)+'\n')
+                ddf.write(str(t)+": "+ str(num_a)+"aucr: "+str(acc_total)+'\n')
                 ddf.close()
                 num_a+=1
+
          
 
     def load(self, model_file, pretrain_file):
